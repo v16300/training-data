@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Клас BasicDataOperationUsingList надає методи для виконання основних операцiй з даними типу byte.
@@ -52,11 +53,11 @@ import java.util.List;
 public class BasicDataOperationUsingList {
     static final String PATH_TO_DATA_FILE = "list/byte.data";
 
-    byte byteValueToSearch;
-    byte[] byteArray;
+    Byte byteValueToSearch;
+    Byte[] byteArray;
     List<Byte> byteList;
 
-    public static void main(String[] args) {  
+    public static void main(String[] args) {
         BasicDataOperationUsingList basicDataOperationUsingList = new BasicDataOperationUsingList(args);
         basicDataOperationUsingList.doDataOperation();
     }
@@ -75,10 +76,7 @@ public class BasicDataOperationUsingList {
         byteValueToSearch = Byte.parseByte(searchValue);
 
         byteArray = Utils.readArrayFromFile(PATH_TO_DATA_FILE);
-        byteList = new ArrayList<>();
-        for (byte b : byteArray) {
-            byteList.add(b);
-        }
+        byteList = new ArrayList<>(Arrays.asList(byteArray));
     }
 
     /**
@@ -115,9 +113,7 @@ public class BasicDataOperationUsingList {
      */
     void sortArray() {
         long startTime = System.nanoTime();
-
-        Arrays.sort(byteArray);
-
+        byteArray = Arrays.stream(byteArray).sorted().toArray(Byte[]::new);
         Utils.printOperationDuration(startTime, "сортування масиву байтiв");
     }
 
@@ -126,11 +122,8 @@ public class BasicDataOperationUsingList {
      */
     void searchArray() {
         long startTime = System.nanoTime();
-
-        int index = Arrays.binarySearch(this.byteArray, byteValueToSearch);
-
+        int index = Arrays.asList(byteArray).indexOf(byteValueToSearch);
         Utils.printOperationDuration(startTime, "пошук в масивi байтiв");
-
         if (index >= 0) {
             System.out.println("Значення '" + byteValueToSearch + "' знайдено в масивi за iндексом: " + index);
         } else {
@@ -146,23 +139,11 @@ public class BasicDataOperationUsingList {
             System.out.println("Масив порожнiй або не iнiцiалiзований.");
             return;
         }
-
+    
         long startTime = System.nanoTime();
-
-        byte min = byteArray[0];
-        byte max = byteArray[0];
-
-        for (byte byteValue : byteArray) {
-            if (byteValue < min) {
-                min = byteValue;
-            }
-            if (byteValue > max) {
-                max = byteValue;
-            }
-        }
-
+        Byte min = Arrays.stream(byteArray).min(Byte::compare).orElse(null);
+        Byte max = Arrays.stream(byteArray).max(Byte::compare).orElse(null);
         Utils.printOperationDuration(startTime, "пошук мiнiмального i максимального значення в масивi байтiв");
-
         System.out.println("Мiнiмальне значення в масивi: " + min);
         System.out.println("Максимальне значення в масивi: " + max);
     }
@@ -172,17 +153,14 @@ public class BasicDataOperationUsingList {
      */
     void searchList() {
         long startTime = System.nanoTime();
-
-        int index = Collections.binarySearch(this.byteList, byteValueToSearch);
-
-        Utils.printOperationDuration(startTime, "пошук в ArrayList байтiв");        
-
+        int index = byteList.stream().collect(Collectors.toList()).indexOf(byteValueToSearch);
+        Utils.printOperationDuration(startTime, "пошук в ArrayList байтiв");
         if (index >= 0) {
             System.out.println("Значення '" + byteValueToSearch + "' знайдено в ArrayList за iндексом: " + index);
         } else {
             System.out.println("Значення '" + byteValueToSearch + "' в ArrayList не знайдено.");
         }
-    }
+    }    
 
     /**
      * Знаходить мiнiмальне та максимальне значення в ArrayList байтiв.
@@ -194,12 +172,9 @@ public class BasicDataOperationUsingList {
         }
 
         long startTime = System.nanoTime();
-
-        byte min = Collections.min(byteList);
-        byte max = Collections.max(byteList);
-
+        Byte min = Collections.min(byteList);
+        Byte max = Collections.max(byteList);
         Utils.printOperationDuration(startTime, "пошук мiнiмального i максимального значення в ArrayList байтiв");
-
         System.out.println("Мiнiмальне значення в ArrayList: " + min);
         System.out.println("Максимальне значення в ArrayList: " + max);
     }
@@ -210,9 +185,7 @@ public class BasicDataOperationUsingList {
      */
     void sortList() {
         long startTime = System.nanoTime();
-
-        Collections.sort(byteList);
-
+        byteList = byteList.stream().sorted().collect(Collectors.toList());
         Utils.printOperationDuration(startTime, "сортування ArrayList байтiв");
     }
 }
@@ -239,24 +212,16 @@ class Utils {
      * @param pathToFile Шлях до файлу з даними.
      * @return Масив об'єктiв byte.
      */
-    static byte[] readArrayFromFile(String pathToFile) {
-        byte[] tempArray = new byte[1000];
-        int index = 0;
-
+    static Byte[] readArrayFromFile(String pathToFile) {
         try (BufferedReader br = new BufferedReader(new FileReader(pathToFile))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                byte byteValue = Byte.parseByte(line);
-                tempArray[index++] = byteValue;
-            }
+            List<Byte> byteList = br.lines()
+                .map(Byte::parseByte)
+                .collect(Collectors.toList());
+            return byteList.toArray(new Byte[0]);
         } catch (IOException e) {
             e.printStackTrace();
+            return new Byte[0];
         }
-
-        byte[] finalArray = new byte[index];
-        System.arraycopy(tempArray, 0, finalArray, 0, index);
-
-        return finalArray;
     }
 
     /**
@@ -265,9 +230,9 @@ class Utils {
      * @param byteArray Масив об'єктiв byte.
      * @param pathToFile Шлях до файлу для запису.
      */
-    static void writeArrayToFile(byte[] byteArray, String pathToFile) {
+    static void writeArrayToFile(Byte[] byteArray, String pathToFile) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(pathToFile))) {
-            for (byte byteValue : byteArray) {
+            for (Byte byteValue : byteArray) {
                 writer.write(Byte.toString(byteValue));
                 writer.newLine();
             }
